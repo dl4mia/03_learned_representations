@@ -231,6 +231,14 @@ def plot_pca(image, pca_image):
 
     plt.show()
 
+# %%
+# PCA example:
+dummy_data = np.random.rand(1000, 380)
+pca = PCA(n_components=3, whiten=True, random_state=SEED)
+pca_comps = pca.fit_transform(dummy_data)
+pca_comps = MinMaxScaler().fit_transform(pca_comps)
+print(pca_comps.shape)
+
 # %% tags=["solution"]
 # get PCA first three components. use flatten_features as input.
 
@@ -248,7 +256,7 @@ pca_comps = MinMaxScaler().fit_transform(pca_comps)
 print(pca_comps.min(), pca_comps.max())
 
 # %% tags=["solution"]
-# now reshape the acquired components to a batch of (num_patches x num_patches) RGB images
+# now reshape the acquired components to (batch_size, num_patches, num_patches, 3)
 # insert your code here
 pca_comps = pca_comps.reshape(batch_size, num_patches, num_patches, 3)
 print(pca_comps.shape)
@@ -269,7 +277,7 @@ plot_pca(transformed_images[10], pca_comps[10])
 #       Now, we want to reduce the dimensionality of the extracted features, and plot the reduced features using <i>UMAP</i>.
 #   </p>
 # <p><i>
-#    Please find the documents here: <a href="https://umap-learn.readthedocs.io/en/latest/parameters.html"><b>UMAP</b></a>
+#    Please find the documents and examples here: <a href="https://umap-learn.readthedocs.io/en/latest/parameters.html"><b>UMAP</b></a>
 #</i>.</p>
 # </div>
 

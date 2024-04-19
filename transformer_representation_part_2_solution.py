@@ -232,16 +232,41 @@ class BaseNet(nn.Module):
         return f"{super().__repr__()}\ntrainable params: {params[0]:,d} {params[1]}"
 
 # %% tags=["solution"]
-# implement your model here
+# complete the model implementation
 
 # class Net(BaseNet):
 #     def __init__(self, ...):
-#         # input will be a tensor of b x (num_patches^2) x 384 dims.
-#         # segmentation output should have channels equal to the number of classes.
-#         ...
-#      def forward(self, x):
-#         # input shape: b x (num_patches^2) x in_channels
+#         super().__init__()
+#         self.input_dim = num_patches
+#         self.in_channels = in_channels
+#         self.n_classes = n_classes
+#         
+#         self.conv1 = nn.Sequential(
+#              nn.Conv2d(
+#                   self.in_channels, 256, kernel_size=3, padding=1, bias=False
+#               ),
+#              nn.BatchNorm2d(256),
+#              nn.LeakyReLU(negative_slope=0.01),
+#         )
+#        # add a similar module as above. Note that input channels to this module will be the same as what is output channels
+#        self.conv2 = ...
+#        # add a similar module. Note that output channels of this should be same as input channels of self.conv_out
+#        self.conv3 = ...
+#        # segmentation output should have channels equal to the number of classes.        
+#        self.conv_out = nn.Conv2d(
+#            64, self.n_classes, kernel_size=1, bias=False
+#        )
+#
+#    def forward(self, x):
+#        # input will be a tensor of b x (num_patches^2) x 384 dims.
+#        x = x.reshape(-1, self.input_dim, self.input_dim, self.in_channels)
+#        x = x.permute(0, 3, 1, 2)
+#        out = self.conv1(x)
+#        out = self.conv2(out)
+#        out = self.conv3(out)
+#        out = self.conv_out(out)
 
+#        return out
 
 class Net(BaseNet):
     def __init__(self, num_patches, in_channels, n_classes):
@@ -340,10 +365,11 @@ epochs = 10
 
 # %% tags=["solution"]
 # insert your code here
-# optim = ...
+# optim = ...  # you can use Adam or AdamW
 optim = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.03)
 
-# loss_fn = ...
+# class_weights = torch.from_numpy(train_dataset.get_class_weights()).to(torch.float32).to(device)
+# loss_fn = ...  # use CrossEntropyLoss with the weight param equals to the class weights
 class_weights = torch.from_numpy(train_dataset.get_class_weights()).to(torch.float32).to(device)
 loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 
@@ -490,10 +516,19 @@ tps, fps, fns, tns = [], [], [], []
 model.eval()
 
 # %% tags=["solution"]
-# insert your code here
+# complete the testing code
 # for image, gt_masks in test_loader:
-# ...
-# ...
+#    image = image.to(device)
+#    gt_masks = gt_masks.to(device)
+
+#    with torch.no_grad():
+#        # pass image to the DINO to get the features
+#        features = ...
+#        # pass features to your model
+#        out = ...
+#
+#    out_upscaled = F.interpolate(out, size=input_size, mode="bilinear", align_corners=False)
+#    loss = loss_fn(out_upscaled, gt_masks)
 #    Don't forget your metrics!
 #    tp, fp, fn, tn = metrics.get_stats(
 #        out_upscaled.argmax(dim=1),
@@ -505,6 +540,8 @@ model.eval()
 #    fns.append(fn)
 #    tns.append(tn)
 #    losses.append(loss.item())
+#
+# print(f"Evaluation average loss: {np.mean(losses):.5f}", end="\r")
 
 for image, gt_masks in test_loader:
     image = image.to(device)
