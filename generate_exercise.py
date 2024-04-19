@@ -13,7 +13,7 @@ def get_arg_parser():
     return parser
 
 
-def generate(notebook_file, out_filename="out.ipynb"):
+def generate(notebook_file, out_filename=None):
     notebook = jupytext.read(notebook_file, as_version=4, fmt="py:percent")
     # save the solution notebook (py to ipynb)
     with open(Path(notebook_file).stem + ".ipynb", "w") as f:
