@@ -24,15 +24,11 @@ import torch
 import torch.nn.functional as F
 from torchvision.transforms import v2 as tv_transforms2
 
-import umap
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler
-
 import utils
 
 
 # %%
+# to have interactive plots
 %matplotlib widget
 plt.ioff()
 
@@ -156,7 +152,7 @@ for i in range(len(image_batch)):
     transformed_images.append(dino_transforms(image_batch[i]))
     transformed_masks.append(mask_transforms(mask_batch[i][:, :, np.newaxis]))
 
-transformed_images = torch.stack(transformed_images)
+transformed_images = torch.stack(transformed_images).to(device)
 transformed_masks = torch.stack(transformed_masks).squeeze(1)
 
 print(transformed_images.shape, transformed_masks.shape)
@@ -164,14 +160,13 @@ print(transformed_images.shape, transformed_masks.shape)
 # %%
 # extract the features
 with torch.no_grad():
-    for i in range(len(image_batch)):
-        features = dinov2.get_intermediate_layers(
-            transformed_images,
-            n=1,
-            return_class_token=False,
-            reshape=False,
-            norm=True
-        )[0]
+    features = dinov2.get_intermediate_layers(
+        transformed_images,
+        n=1,
+        return_class_token=False,
+        reshape=False,
+        norm=True
+    )[0]
 
 print(features.shape)
 
@@ -209,27 +204,8 @@ low_res_masks = F.interpolate(
 ).squeeze(1)
 
 # %%
-# provided function for plotting
-def plot_pca(image, pca_image):
-    if image.shape[0] == 3:
-        image = image[0]
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 3), layout="compressed")
-    fig.canvas.toolbar_position = "right"
-    fig.canvas.header_visible = False
-    fig.canvas.footer_visible = False
-
-    axes[0].imshow(image, cmap="grey", origin="lower")
-    axes[0].set_title("Image")
-    axes[1].imshow(pca_image, origin="lower")
-    axes[1].set_title("PCA")
-
-    for ax in axes.ravel():
-        ax.set_aspect("equal", "box")
-        # ax.set_axis_off()
-        ax.set_yticks([])
-        ax.xaxis.set_tick_params(labelsize=8)
-
-    plt.show()
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler
 
 # %%
 # PCA example:
@@ -261,6 +237,31 @@ print(pca_comps.min(), pca_comps.max())
 pca_comps = pca_comps.reshape(batch_size, num_patches, num_patches, 3)
 print(pca_comps.shape)
 
+# %%
+# provided function for plotting
+def plot_pca(image, pca_image):
+    if image.shape[0] == 3:
+        image = image[0]
+    image = image.cpu()
+
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 3), layout="compressed")
+    fig.canvas.toolbar_position = "right"
+    fig.canvas.header_visible = False
+    fig.canvas.footer_visible = False
+
+    axes[0].imshow(image, cmap="grey", origin="lower")
+    axes[0].set_title("Image")
+    axes[1].imshow(pca_image, origin="lower")
+    axes[1].set_title("PCA")
+
+    for ax in axes.ravel():
+        ax.set_aspect("equal", "box")
+        # ax.set_axis_off()
+        ax.set_yticks([])
+        ax.xaxis.set_tick_params(labelsize=8)
+
+    plt.show()
+
 # %% tags=["solution"]
 # plot some samples using plot_pca() function.
 # use transformed_images as pixel images versus PCA images.
@@ -281,10 +282,14 @@ plot_pca(transformed_images[10], pca_comps[10])
 #</i>.</p>
 # </div>
 
+# %%
+import umap
+
 # %% tags=["solution"]
 # insert your code here
-# reducer = ...
+# reducer = umap.UMAP(...)
 reducer = umap.UMAP(n_neighbors=15, min_dist=0.3, metric="euclidean")
+# use flatten_features as input
 # umap_embeddings = ...
 umap_embeddings = reducer.fit_transform(flatten_features)
 
@@ -331,10 +336,15 @@ plt.show()
 # </div>
 
 # %%
+from sklearn.cluster import KMeans
+
+# %%
 # clustering plot function
 def plot_clustering(image, gt, gt_low, pred, cmap="Dark2", n_classes=7, clustering="KMeans"):
     if image.shape[0] == 3:
         image = image[0]
+    image = image.cpu()
+
     fig, axes = plt.subplots(2, 2, figsize=(7, 5.9), layout="compressed")
     fig.canvas.toolbar_position = "right"
     fig.canvas.header_visible = False

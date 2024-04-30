@@ -33,6 +33,7 @@ import utils
 import metrics
 
 # %%
+# to have interactive plots
 %matplotlib widget
 plt.ioff()
 
@@ -46,31 +47,6 @@ torch.cuda.manual_seed(SEED)
 # color map for visualization of the ground truth masks
 cm, colors = utils.get_colormap()
 cm
-
-# %%
-# plotting functions
-
-def plot_metric(metric, ax, title, colors, class_labels):
-    # metric shape: num_epochs x num_classes
-    num_classes = metric.shape[1]
-    for c in range(num_classes):
-        ax.plot(metric[:, c] * 100, color=colors[c], label=class_labels[c], lw=1.2)
-    # epoch average
-    ax.plot(metric.mean(axis=1) * 100, color="maroon", label="Average", lw=1.5)
-
-    ax.set_title(title, fontweight="bold")
-    ax.set_xlabel("Epochs")
-    ax.set_ylabel("%")
-    ax.grid(alpha=0.3)
-    ax.legend(loc="lower right", fontsize=8)
-
-
-def plot_evaluation(metric, ax, title, colors, class_labels):
-    bp = ax.bar(class_labels, height=metric * 100, color=colors, width=0.65)
-    ax.bar_label(bp, label_type="edge", fmt="%.2f")
-    ax.set_title(title, fontweight="bold")
-    ax.tick_params(axis="x", labelrotation=45)
-
 
 # %% [markdown]
 # ## Dataset
@@ -334,17 +310,6 @@ print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/
 # %% [markdown]
 # ## Training
 
-# %% [markdown]
-# <div class="alert alert-info">
-#   <h3>Task 1.2: Training</h3>
-#   <p>
-#       The training loop is here already! You just need to setup the optimizer and the loss function.
-#       <br><b>Note:</b> In segmentation tasks, usually some classes including much more pixels than others e.g. background. So, we need to take care of this class imbalance giving weights to each classes. To do this use <code>train_dataset.get_class_weights()</code> to get the class's weights.
-#   </p>
-# <p><i>
-#    Please refer to the <a href="https://pytorch.org/docs/stable/nn.html"><b>Pytorch</b> documentation</a>
-#</i>.</p>
-# </div>
 # %%
 # the data resides in this path: "/group/dl4miacourse/platelet_data"
 # train dataset
@@ -361,7 +326,19 @@ train_dataset.plot_sample(cm)
 # hyper-params
 batch_size = 16
 lr = 1e-3
-epochs = 10
+epochs = 100
+
+# %% [markdown]
+# <div class="alert alert-info">
+#   <h3>Task 1.2: Training</h3>
+#   <p>
+#       The training loop is here already! You just need to setup the optimizer and the loss function.
+#       <br><b>Note:</b> In segmentation tasks, usually some classes including much more pixels than others e.g. background. So, we need to take care of this class imbalances giving weights to each classes. To do this use <code>train_dataset.get_class_weights()</code> to get the class's weights.
+#   </p>
+# <p><i>
+#    Please refer to the pytorch documentations: <a href="https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss">CrossEntropyLoss</a>, <a href="https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html#torch.optim.AdamW">AdamW</a> 
+#</i>.</p>
+# </div>
 
 # %% tags=["solution"]
 # insert your code here
@@ -378,6 +355,10 @@ train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
 num_batches = len(train_loader)
 print(f"number of batches: {num_batches}")
 
+# %% [markdown]
+# To visualize the training progress, we use an interactive ploting method: 
+# <br> at each plot update, we remove the previous line and draw the new one, 
+# then we update the plot by calling `fig_loss.canvas.draw()` and `fig_loss.canvas.flush_events()` .
 # %%
 # preparing training loss plot
 fig_loss, ax_loss = plt.subplots(1, 1, figsize=(11, 6), layout="compressed")
@@ -461,6 +442,20 @@ ious = np.vstack(ious)
 
 # %%
 # plot metrics
+def plot_metric(metric, ax, title, colors, class_labels):
+    # metric shape: num_epochs x num_classes
+    num_classes = metric.shape[1]
+    for c in range(num_classes):
+        ax.plot(metric[:, c] * 100, color=colors[c], label=class_labels[c], lw=1.2)
+    # epoch average
+    ax.plot(metric.mean(axis=1) * 100, color="maroon", label="Average", lw=1.5)
+
+    ax.set_title(title, fontweight="bold")
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("%")
+    ax.grid(alpha=0.3)
+    ax.legend(loc="lower right", fontsize=8)
+
 fig_metrics, axes = plt.subplots(1, 3, figsize=(16, 5), layout="compressed")
 fig_metrics.canvas.toolbar_position = "right"
 fig_metrics.canvas.header_visible = False
@@ -480,15 +475,6 @@ plt.show()
 
 # %% [markdown]
 # ## Evaluation
-
-# %% [markdown]
-# <div class="alert alert-info">
-#   <h3>Task 1.3: Model Evaluation</h3>
-#   <p>
-#       Given the train loop, this is a very easy one!
-#       <br>You need to pass the input image to the DINOv2 to get the features, and then pass the features to your model. Done!
-#   </p>
-# </div>
 
 # %%
 # test dataset 
@@ -514,6 +500,15 @@ losses = []
 tps, fps, fns, tns = [], [], [], []
 
 model.eval()
+
+# %% [markdown]
+# <div class="alert alert-info">
+#   <h3>Task 1.3: Model Evaluation</h3>
+#   <p>
+#       Given the train loop, this is a very easy one!
+#       <br>You need to pass the input image to the DINOv2 to get the features, and then pass the features to your model. Done!
+#   </p>
+# </div>
 
 # %% tags=["solution"]
 # complete the testing code
@@ -581,6 +576,13 @@ ious = metrics.iou_score(tps, fps, fns, tns, reduction=None).mean(dim=0).numpy()
 
 # %%
 # plot evaluation metrics
+def plot_evaluation(metric, ax, title, colors, class_labels):
+    bp = ax.bar(class_labels, height=metric * 100, color=colors, width=0.65)
+    ax.bar_label(bp, label_type="edge", fmt="%.2f")
+    ax.set_title(title, fontweight="bold")
+    ax.tick_params(axis="x", labelrotation=45)
+
+
 fig_metrics, axes = plt.subplots(1, 3, figsize=(16, 5), layout="compressed")
 fig_metrics.canvas.toolbar_position = "right"
 fig_metrics.canvas.header_visible = False
