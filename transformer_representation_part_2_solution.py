@@ -7,7 +7,7 @@
 
 # %% [markdown]
 # <div class="alert alert-danger">
-#     Please switch to the <code>05_learned_representations</code> environment.
+#     Please switch to the <code>03_learned_representations</code> environment.
 # </div>
 
 # %% [markdown]
