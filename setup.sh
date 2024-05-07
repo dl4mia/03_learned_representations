@@ -12,4 +12,4 @@ python -m ipykernel install --user --name 03_learned_representations --display-n
 # Return to base environment
 mamba activate base
 # we need ipympl to have interactive plots
-mamba install -y ipympl
+mamba install -y jupyterlab ipympl
